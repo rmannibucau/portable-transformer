@@ -1,0 +1,7 @@
+.idea
+*.iml
+*.iws
+*.ipr
+target
+.gradle
+integration/transformer-shadow/src/it/default/build/

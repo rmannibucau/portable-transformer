@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+          http://maven.apache.org/POM/4.0.0
+          http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>transformer-parent</artifactId>
+    <groupId>com.github.rmannibucau</groupId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>integration</artifactId>
+  <packaging>pom</packaging>
+  <name>Transformer :: Integration</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.github.rmannibucau</groupId>
+      <artifactId>transformer-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <modules>
+    <module>transformer-maven-shade</module>
+    <module>transformer-shadow</module>
+  </modules>
+</project>

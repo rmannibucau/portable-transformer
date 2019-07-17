@@ -1,0 +1,195 @@
+= Transformer Abstraction
+
+[abstract]
+This project aims at providing an abstraction between Apache Maven Shade plugin and Gradle Shadow plugin.
+It enables to write transformer once and use it in both plugins.
+
+
+== API
+
+=== Dependency
+
+[source,xml]
+----
+<dependencies>
+  <dependency>
+    <groupId>com.github.rmannibucau</groupId>
+    <artifactId>transformer-api</artifactId>
+    <version>${project.version}</version>
+    <scope>provided</scope>
+  </dependency>
+</dependencies>
+----
+
+=== Usage
+
+`com.github.rmannibucau.transformer.api.Transformer` is the portable API.
+It is a subset of both plugins but generally the one used by most common transformers.
+You can find a sample in the `sample` module on Github.
+
+== Maven
+
+=== Dependency
+
+[source,xml]
+----
+<dependency>
+  <groupId>com.github.rmannibucau</groupId>
+  <artifactId>transformer-maven-shade</artifactId>
+  <version>${transformer.version}</version>
+</dependency>
+----
+
+=== Usage
+
+[source,xml]
+----
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-shade-plugin</artifactId>
+  <version>3.2.1</version>
+  <configuration>
+    <transformers>
+      <transformer implementation="com.github.rmannibucau.transformer.integration.maven.shade.TransformerShadeBridge">
+        <delegate implementation="org.superbiz.MyTransformer">
+          <somethingToSet>foo</comment>
+          <somethingElse>1</comment>
+        </delegate>
+      </transformer>
+    </transformers>
+  </configuration>
+</plugin>
+----
+
+Here is a full pom using that feature:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.github.rmannibucau</groupId>
+  <artifactId>sample-maven</artifactId>
+  <version>1.0.0</version>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.1</version>
+        <executions>
+          <execution>
+            <id>shade</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <transformers>
+            <transformer implementation="com.github.rmannibucau.transformer.integration.maven.shade.TransformerShadeBridge">
+              <delegate implementation="com.github.rmannibucau.transformer.sample.DemoTransformer">
+                <comment>generated for integration tests</comment>
+              </delegate>
+            </transformer>
+          </transformers>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.github.rmannibucau</groupId>
+            <artifactId>sample</artifactId>
+            <version>${transformer.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.github.rmannibucau</groupId>
+            <artifactId>transformer-maven-shade</artifactId>
+            <version>${transformer.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+
+----
+
+== Gradle
+
+=== Dependency
+
+[source,xml]
+----
+<dependency>
+  <groupId>com.github.rmannibucau</groupId>
+  <artifactId>transformer-shadow</artifactId>
+  <version>${transformer.version}</version>
+</dependency>
+----
+
+=== Usage
+
+[source,groovy]
+----
+import org.superbiz.MyTransformer
+import com.github.rmannibucau.transformer.integration.gradle.shadow.TransformerShadowBridge
+
+shadowJar{
+  transform(new TransformerShadowBridge(
+    // portable transformer instance
+    new MyTransformer(somethingToSet: 'foo', somethingElse: 1)))
+
+    // or
+    transform(new TransformerShadowBridge(delegate: new MyTransformer(somethingToSet: 'foo', somethingElse: 1)))
+
+    // or
+    transform(TransformerShadowBridge.of(new MyTransformer(somethingToSet: 'foo', somethingElse: 1)))
+}
+----
+
+Here is a complete gradle script:
+
+[source,groovy]
+----
+import static com.github.rmannibucau.transformer.integration.gradle.shadow.TransformerShadowBridge.of
+import com.github.rmannibucau.transformer.sample.DemoTransformer
+
+buildscript {
+    repositories {
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
+        classpath "com.github.rmannibucau:transformer-shadow:${original_project_version}"
+
+        classpath "com.github.rmannibucau:sample:${original_project_version}" // containing custom transformers
+    }
+}
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '5.1.0'
+    id 'java'
+}
+
+shadowJar {
+    transform(of(new DemoTransformer(comment: 'gradle integration test comment')))
+}
+----
+
+
+== Future
+
+. A Maven plugin could generate two artifacts (based on a classifier?) to handle native integrations with both Maven Shade and Gradle Shadow plugins. This would avoid to the end user to have to wrap the portable transformers.
+. Enable to inject the specific metadata (the part which is not in the portable API) through a SPI/Context kind of API.
+
+== Building
+
+[source,bash]
+----
+mvn clean verify
+----

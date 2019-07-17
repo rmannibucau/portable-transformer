@@ -1,0 +1,67 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
+        classpath "com.github.rmannibucau:transformer-shadow:${original_project_version}"
+        classpath "com.github.rmannibucau:sample:${original_project_version}"
+    }
+}
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '5.1.0'
+    id 'java'
+}
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+
+import java.util.jar.JarFile
+import java.util.zip.ZipEntry
+
+import static com.github.rmannibucau.transformer.integration.gradle.shadow.TransformerShadowBridge.of
+import com.github.rmannibucau.transformer.sample.DemoTransformer
+
+shadowJar {
+    transform(of(new DemoTransformer(comment: 'gradle integration test comment')))
+}
+
+tasks.register('validate') {
+    doLast {
+        def path = project.tasks.shadowJar.outputs.files.singleFile
+        if (!path.exists()) {
+            throw new IllegalStateException("Could not find generated JAR: ${path}")
+        }
+
+        final JarFile jar = new JarFile(path)
+        try {
+            final ZipEntry entry = jar.getEntry('sample.properties')
+            if (entry == null) {
+                throw new IllegalStateException("Shade plugin didn't create sample.properties: ${Collections.list(jar.entries())}")
+            }
+
+            final Properties properties = new Properties()
+            final InputStream stream = jar.getInputStream(entry)
+            try {
+                properties.load(stream)
+            } finally {
+                stream.close()
+            }
+
+            final Properties expected = new Properties();
+            expected.setProperty('file1.sample', 'first');
+            expected.setProperty('file2.sample', 'second');
+            if (properties.size() != 2 || !expected.equals(properties)) {
+                throw new IllegalStateException('Invalid sample.properties: ' + properties)
+            }
+        } finally {
+            jar.close()
+        }
+
+    }
+}
